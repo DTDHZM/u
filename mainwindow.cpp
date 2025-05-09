@@ -5,11 +5,8 @@
 #include <QTextStream>
 #include <QFileDialog>
 #include <QMessageBox>
-#include <QFont>
-#include <QLocale>
-#include <QTranslator>
-#include <QIcon> // Required for using icons
-#include <QToolBar> // Required for using toolbar
+#include <QIcon>
+#include <QToolBar>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -33,27 +30,23 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 添加“画线”按钮
     QAction *drawLineAction = new QAction(QIcon(":/line.png"), tr("画线"), this);
-
     connect(drawLineAction, &QAction::triggered, this, &MainWindow::selectDrawLine);
     toolBar->addAction(drawLineAction);
 
     // 添加“画矩形”按钮
     QAction *drawRectAction = new QAction(QIcon(":/rect.png"), tr("画矩形"), this);
-
     connect(drawRectAction, &QAction::triggered, this, &MainWindow::selectDrawRectangle);
     toolBar->addAction(drawRectAction);
 }
 
 MainWindow::~MainWindow()
 {
-    // 清理动态分配的形状
     for (Shape *shape : shapes) {
         delete shape;
     }
     delete ui;
 }
 
-// 其他绘图功能保持不变
 void MainWindow::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -105,12 +98,52 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
 
 void MainWindow::saveShapesToFile()
 {
-    // 保存文件功能
+    QString fileName = QFileDialog::getSaveFileName(this, tr("保存文件"), "", tr("Text Files (*.txt);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("错误"), tr("无法保存文件：%1").arg(file.errorString()));
+        return;
+    }
+
+    QTextStream out(&file);
+    for (Shape *shape : shapes) {
+        out << shape->toString() << "\n";
+    }
 }
 
 void MainWindow::loadShapesFromFile()
 {
-    // 打开文件功能
+    QString fileName = QFileDialog::getOpenFileName(this, tr("打开文件"), "", tr("Text Files (*.txt);;All Files (*)"));
+    if (fileName.isEmpty())
+        return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("错误"), tr("无法打开文件：%1").arg(file.errorString()));
+        return;
+    }
+
+    QTextStream in(&file);
+    qDeleteAll(shapes);
+    shapes.clear();
+
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        if (line.startsWith("Line,")) {
+            Line *shape = new Line();
+            shape->fromString(line);
+            shapes.push_back(shape);
+        } else if (line.startsWith("Rect,")) {
+            Rect *shape = new Rect();
+            shape->fromString(line);
+            shapes.push_back(shape);
+        }
+    }
+
+    update();
 }
 
 void MainWindow::selectDrawLine()
