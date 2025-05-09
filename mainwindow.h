@@ -1,6 +1,6 @@
-﻿#ifndef MAINWINDOW_H
+#ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-//添加此行用于UTF-8另存
+
 #include <QMainWindow>
 #include <QPoint>
 #include <QPainter>
@@ -9,7 +9,9 @@
 #include "rect.h"
 
 QT_BEGIN_NAMESPACE
-namespace Ui { class MainWindow; }
+namespace Ui {
+class MainWindow;
+}
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
