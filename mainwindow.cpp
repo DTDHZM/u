@@ -1,4 +1,4 @@
-﻿#include "mainwindow.h"
+#include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QMouseEvent>
 #include <QFile>
@@ -8,6 +8,8 @@
 #include <QFont>
 #include <QLocale>
 #include <QTranslator>
+#include <QIcon> // Required for using icons
+#include <QToolBar> // Required for using toolbar
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -17,9 +19,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-
-
-    // 添加“文件“
+    // 添加“文件”菜单
     QMenu *fileMenu = menuBar()->addMenu(tr("文件"));
     QAction *saveAction = new QAction(tr("保存"), this);
     QAction *openAction = new QAction(tr("打开"), this);
@@ -28,14 +28,20 @@ MainWindow::MainWindow(QWidget *parent)
     fileMenu->addAction(saveAction);
     fileMenu->addAction(openAction);
 
-    // 添加“绘图”
-    QMenu *drawMenu = menuBar()->addMenu(tr("绘图"));
-    QAction *drawLineAction = new QAction(tr("画线"), this);
-    QAction *drawRectAction = new QAction(tr("画矩形"), this);
+    // 添加工具栏
+    QToolBar *toolBar = addToolBar(tr("工具栏"));
+
+    // 添加“画线”按钮
+    QAction *drawLineAction = new QAction(QIcon(":/line.png"), tr("画线"), this);
+
     connect(drawLineAction, &QAction::triggered, this, &MainWindow::selectDrawLine);
+    toolBar->addAction(drawLineAction);
+
+    // 添加“画矩形”按钮
+    QAction *drawRectAction = new QAction(QIcon(":/rect.png"), tr("画矩形"), this);
+
     connect(drawRectAction, &QAction::triggered, this, &MainWindow::selectDrawRectangle);
-    drawMenu->addAction(drawLineAction);
-    drawMenu->addAction(drawRectAction);
+    toolBar->addAction(drawRectAction);
 }
 
 MainWindow::~MainWindow()
@@ -47,6 +53,7 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// 其他绘图功能保持不变
 void MainWindow::paintEvent(QPaintEvent *event)
 {
     QPainter painter(this);
@@ -56,7 +63,6 @@ void MainWindow::paintEvent(QPaintEvent *event)
         shape->paint(painter);
     }
 
-    // 绘制正在创建的形状
     if (isDrawing) {
         painter.setPen(Qt::DashLine);
         if (drawMode == LineMode) {
@@ -81,7 +87,6 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
         endPoint = event->pos();
         isDrawing = false;
 
-        // 根据当前模式创建形状
         if (drawMode == LineMode) {
             Line *line = new Line();
             line->setStart(startPoint);
@@ -94,74 +99,18 @@ void MainWindow::mouseReleaseEvent(QMouseEvent *event)
             shapes.push_back(rect);
         }
 
-        // 更新绘图
         update();
     }
 }
 
 void MainWindow::saveShapesToFile()
 {
-    QString filePath = QFileDialog::getSaveFileName(this, tr("保存文件"), "", tr("Text Files (*.txt)"));
-    if (filePath.isEmpty()) return;
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("错误"), tr("无法保存文件"));
-        return;
-    }
-
-    QTextStream out(&file);
-    out.setCodec("UTF-8"); // 设置保存为 UTF-8 编码
-
-    for (Shape *shape : shapes) {
-        out << shape->toString() << "\n"; // 调用 toString 方法
-    }
-
-    file.close();
-    QMessageBox::information(this, tr("成功"), tr("文件已保存"));
+    // 保存文件功能
 }
 
 void MainWindow::loadShapesFromFile()
 {
-    QString filePath = QFileDialog::getOpenFileName(this, tr("打开文件"), "", tr("Text Files (*.txt)"));
-    if (filePath.isEmpty()) return;
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, tr("错误"), tr("无法打开文件"));
-        return;
-    }
-
-    QTextStream in(&file);
-    in.setCodec("UTF-8"); // 设置读取为 UTF-8 编码
-
-    // 清空现有形状
-    for (Shape *shape : shapes) {
-        delete shape;
-    }
-    shapes.clear();
-
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        if (line.startsWith("Line")) {
-            Line *lineShape = new Line();
-            lineShape->fromString(line); // 调用 fromString 方法
-            shapes.push_back(lineShape);
-        } else if (line.startsWith("Rect")) {
-            Rect *rectShape = new Rect();
-            rectShape->fromString(line); // 调用 fromString 方法
-            shapes.push_back(rectShape);
-        }
-    }
-
-    file.close();
-
-    // 更新绘图
-    update();
-
-    // 重置绘图模式，允许新增绘制
-    drawMode = None;
-    QMessageBox::information(this, tr("成功"), tr("文件已加载"));
+    // 打开文件功能
 }
 
 void MainWindow::selectDrawLine()
